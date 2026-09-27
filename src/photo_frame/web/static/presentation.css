@@ -1,0 +1,132 @@
+:root {
+  color-scheme: dark;
+  --bg: #0c0d11;
+  --fg: #f7f4ee;
+  --muted: rgba(247, 244, 238, 0.78);
+  --overlay: rgba(18, 20, 26, 0.62);
+  --accent: #f0c27a;
+  --font: "Nunito", "Avenir Next Rounded", "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  overflow: hidden;
+  user-select: none;
+}
+
+.stage {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background:
+    radial-gradient(circle at 50% 42%, #242833 0%, #12141a 42%, #07080c 100%);
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 700ms ease;
+}
+
+.slide.active { opacity: 1; z-index: 1; }
+.slide.fade-out { opacity: 0; }
+
+.slide img,
+.slide video {
+  max-width: min(92vw, 1600px);
+  max-height: 84vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  background: #111;
+  border-radius: 36px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+}
+
+.overlay {
+  position: absolute;
+  left: 28px;
+  bottom: 28px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 20px;
+  border-radius: 999px;
+  background: var(--overlay);
+  color: var(--muted);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  transition: opacity 400ms ease;
+  pointer-events: none;
+}
+
+.overlay.visible { opacity: 1; }
+.overlay .added { color: var(--accent); }
+
+.empty {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+  padding: 32px;
+  z-index: 2;
+}
+
+.empty h1 {
+  font-weight: 700;
+  font-size: 40px;
+  margin: 0;
+  letter-spacing: -0.03em;
+}
+
+.empty p { margin: 0; color: var(--muted); font-size: 18px; }
+.empty a { color: var(--accent); }
+
+.controls {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  z-index: 4;
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 250ms ease;
+}
+
+.controls.visible { opacity: 1; pointer-events: auto; }
+
+button {
+  appearance: none;
+  border: 0;
+  background: rgba(22, 24, 30, 0.82);
+  color: var(--fg);
+  border-radius: 999px;
+  padding: 12px 20px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+button:hover { background: rgba(28, 30, 36, 0.9); }

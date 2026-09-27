@@ -1,0 +1,18 @@
+[Unit]
+Description=Photo Frame
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=photoframe
+Group=photoframe
+WorkingDirectory=/opt/photo-frame
+ExecStart=/opt/photo-frame/.venv/bin/photo-frame --data-dir /var/lib/photo-frame --host 0.0.0.0 --port 8080 --hostname frame --log-level INFO
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

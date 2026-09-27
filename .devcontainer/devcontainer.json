@@ -1,0 +1,24 @@
+{
+  "name": "life-spotlight",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopContainer",
+  "forwardPorts": [8010],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.analysis.extraPaths": ["/workspace"]
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+  "postCreateCommand": "cd /workspace && python -m pip install --upgrade pip && if [ -f requirements.txt ]; then pip install -r requirements.txt; fi"
+}

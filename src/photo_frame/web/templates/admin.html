@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Photo Frame admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/admin.css?v={{ version }}">
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Photo Frame</h1>
+      <p class="note">{{ hostname }}.local · v{{ version }}</p>
+    </div>
+    <a href="/">Presentation</a>
+  </header>
+  <main class="grid">
+    <section>
+      <h2>Status</h2>
+      <dl id="status"></dl>
+    </section>
+    <div class="grid two">
+      <section>
+        <h2>Immich</h2>
+        <form id="immich-form">
+          <label for="immich_url">Server URL</label>
+          <input id="immich_url" name="immich_url" type="url" placeholder="https://photos.example.com" autocomplete="off">
+          <label for="album_id">Album ID</label>
+          <input id="album_id" name="album_id" autocomplete="off" spellcheck="false">
+          <label for="api_key">API key</label>
+          <input id="api_key" name="api_key" type="password" autocomplete="new-password" placeholder="Leave blank to keep the stored key">
+          <div class="row">
+            <button type="submit">Save</button>
+            <button id="test" class="secondary" type="button">Test connection</button>
+          </div>
+        </form>
+        <div id="albums" class="row"></div>
+      </section>
+      <section>
+        <h2>Display</h2>
+        <form id="display-form">
+          <label for="presentation_mode">Mode</label>
+          <select id="presentation_mode">
+            <option value="now">Now</option>
+            <option value="newest">Newest</option>
+            <option value="random">Random</option>
+            <option value="balanced">Balanced</option>
+          </select>
+          <label for="photo_duration_seconds">Photo duration (seconds)</label>
+          <input id="photo_duration_seconds" type="number" min="3" max="300">
+          <label for="transition">Transition</label>
+          <select id="transition">
+            <option value="fade">Fade</option>
+            <option value="none">None</option>
+          </select>
+          <label class="check"><input id="show_overlay" type="checkbox"> Show date overlay</label>
+          <label class="check"><input id="videos_enabled" type="checkbox"> Play videos</label>
+          <label for="new_window_hours">New-media window (hours)</label>
+          <input id="new_window_hours" type="number" min="1" max="720">
+          <div class="row">
+            <button type="submit">Save display</button>
+          </div>
+        </form>
+      </section>
+    </div>
+    <section>
+      <h2>Sync and storage</h2>
+      <form id="system-form">
+        <div class="grid two">
+          <div>
+            <label for="sync_incremental_minutes">Incremental sync (minutes)</label>
+            <input id="sync_incremental_minutes" type="number" min="5" max="1440">
+          </div>
+          <div>
+            <label for="sync_reconcile_hours">Full reconciliation (hours)</label>
+            <input id="sync_reconcile_hours" type="number" min="1" max="336">
+          </div>
+          <div>
+            <label for="cache_ceiling_gb">Cache ceiling (GB)</label>
+            <input id="cache_ceiling_gb" type="number" min="1" max="2000" step="1">
+          </div>
+          <div>
+            <label for="reserved_gb">Reserved free space (GB)</label>
+            <input id="reserved_gb" type="number" min="0" max="100" step="0.1">
+          </div>
+          <div>
+            <label for="http_timeout_seconds">Immich request timeout (seconds)</label>
+            <input id="http_timeout_seconds" type="number" min="5" max="600">
+          </div>
+          <div>
+            <label for="download_timeout_seconds">Download timeout (seconds)</label>
+            <input id="download_timeout_seconds" type="number" min="30" max="3600">
+          </div>
+        </div>
+        <div class="row">
+          <button type="submit">Save sync and storage</button>
+        </div>
+      </form>
+    </section>
+    <section>
+      <h2>Sync</h2>
+      <div class="row">
+        <button id="sync-now" type="button">Sync now</button>
+        <button id="reconcile" class="secondary" type="button">Full reconciliation</button>
+      </div>
+      <p id="form-note" class="note"></p>
+    </section>
+    <section>
+      <h2>Wi-Fi</h2>
+      <p class="note">NetworkManager owns the connection. This only asks the operating system to join a network.</p>
+      <form id="wifi-form">
+        <label for="ssid">Network name</label>
+        <input id="ssid" autocomplete="off">
+        <label for="wifi_password">Password</label>
+        <input id="wifi_password" type="password" autocomplete="new-password">
+        <div class="row">
+          <button type="submit">Connect</button>
+          <button id="wifi-scan" class="secondary" type="button">Scan</button>
+        </div>
+      </form>
+      <div id="wifi-list" class="row"></div>
+    </section>
+  </main>
+  <script src="/static/admin.js?v={{ version }}"></script>
+</body>
+</html>

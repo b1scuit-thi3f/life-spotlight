@@ -1,0 +1,13 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace:cached
+    command: sleep infinity
+    ports:
+      - "8010:8000"
+    environment:
+      APP_ENV: development

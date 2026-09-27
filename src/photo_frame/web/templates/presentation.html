@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <title>Photo Frame</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/presentation.css?v={{ version }}">
+</head>
+<body>
+  <main class="stage" aria-label="Photo frame">
+    <section class="empty">
+      <h1>Waiting for photos</h1>
+      <p>The local cache is empty. <a href="/admin">Open administration</a>.</p>
+    </section>
+    <div class="overlay" aria-hidden="true">
+      <span class="added"></span>
+      <span class="captured"></span>
+    </div>
+    <div class="controls">
+      <button id="audio" type="button" hidden>Sound</button>
+      <button id="next" type="button">Next</button>
+    </div>
+  </main>
+  <script src="/static/presentation.js?v={{ version }}"></script>
+</body>
+</html>
