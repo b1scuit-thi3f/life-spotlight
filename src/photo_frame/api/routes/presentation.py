@@ -8,8 +8,9 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 
 from photo_frame.core.settings import SettingsService
-from photo_frame.core.status import displayState, presentationMedia
-from photo_frame.models.media import PlaybackReport, PresentationNext
+from photo_frame.core.time import ageLabel, parseIso
+from photo_frame.models.display import DisplayState
+from photo_frame.models.media import PlaybackReport, PresentationMedia, PresentationNext
 
 router = APIRouter()
 
@@ -26,12 +27,34 @@ def nextMedia(request: Request, exclude: str = "") -> PresentationNext:
         settings.presentationMode(),
         excludeIds=excludeIds[-12:],
     )
-    display = displayState(settings)
+    display = DisplayState(
+        presentationMode=settings.presentationMode(),
+        photoDurationSeconds=settings.photoDurationSeconds(),
+        showOverlay=settings.showOverlay(),
+        videosEnabled=settings.videosEnabled(),
+        transition=settings.transition(),
+        newWindowHours=settings.newWindowHours(),
+    )
     if selection is None:
         return PresentationNext(media=None, display=display)
-    app.state.db.setSync("currently_displayed_id", str(selection.media.id))
+    media = selection.media
+    captured = parseIso(media.capturedAt)
+    firstSeen = parseIso(media.firstSeenAt)
+    app.state.db.setSync("currently_displayed_id", str(media.id))
     return PresentationNext(
-        media=presentationMedia(selection.media, selection.isNew),
+        media=PresentationMedia(
+            id=media.id,
+            mediaType=media.mediaType,
+            mimeType=media.mimeType,
+            url=f"/media/{media.id}",
+            width=media.width,
+            height=media.height,
+            durationSeconds=media.durationSeconds,
+            isNew=selection.isNew,
+            addedLabel=f"added {ageLabel(firstSeen)}" if firstSeen else "",
+            capturedLabel="" if captured is None else f"{captured.day} {captured.strftime('%b %Y')}",
+            filename=media.filename,
+        ),
         reason=selection.reason,
         display=display,
     )

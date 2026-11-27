@@ -5,10 +5,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 
-def utcNow() -> datetime:
-    return datetime.now(timezone.utc)
-
-
 def toIso(value: datetime) -> str:
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
@@ -33,7 +29,7 @@ def parseIso(value: str | None) -> datetime | None:
 def ageLabel(moment: datetime | None, now: datetime | None = None) -> str:
     if moment is None:
         return ""
-    now = now or utcNow()
+    now = now or datetime.now(timezone.utc)
     seconds = int((now - moment).total_seconds())
     if seconds < 60:
         return "just now"

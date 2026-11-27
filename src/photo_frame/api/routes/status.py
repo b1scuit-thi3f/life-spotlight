@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Request
 
 from photo_frame import __version__
 from photo_frame.core.settings import SettingsService
-from photo_frame.core.status import displayState, systemState
-from photo_frame.core.time import toIso, utcNow
+from photo_frame.core.time import toIso
+from photo_frame.models.display import DisplayState
 from photo_frame.models.immich import ImmichState
 from photo_frame.models.network import NetworkState
 from photo_frame.models.sync import CacheState, StatusReport, SyncState
+from photo_frame.models.system import SystemState
 
 router = APIRouter()
 
@@ -33,7 +36,7 @@ def status(request: Request) -> StatusReport:
     return StatusReport(
         version=__version__,
         startedAt=toIso(started),
-        uptimeSeconds=int((utcNow() - started).total_seconds()),
+        uptimeSeconds=int((datetime.now(timezone.utc) - started).total_seconds()),
         hostname=app.state.runtime.hostname,
         network=NetworkState(
             connected=net.connected,
@@ -67,6 +70,20 @@ def status(request: Request) -> StatusReport:
             ceilingBytes=cache.ceilingBytes,
             freeBytes=cache.filesystemFreeBytes(),
         ),
-        display=displayState(settings),
-        system=systemState(settings),
+        display=DisplayState(
+            presentationMode=settings.presentationMode(),
+            photoDurationSeconds=settings.photoDurationSeconds(),
+            showOverlay=settings.showOverlay(),
+            videosEnabled=settings.videosEnabled(),
+            transition=settings.transition(),
+            newWindowHours=settings.newWindowHours(),
+        ),
+        system=SystemState(
+            cacheCeilingBytes=settings.cacheCeilingBytes(),
+            reservedBytes=settings.reservedBytes(),
+            syncIncrementalMinutes=settings.syncIncrementalMinutes(),
+            syncReconcileHours=settings.syncReconcileHours(),
+            httpTimeoutSeconds=settings.httpTimeoutSeconds(),
+            downloadTimeoutSeconds=settings.downloadTimeoutSeconds(),
+        ),
     )

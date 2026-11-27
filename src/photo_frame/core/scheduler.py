@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import logging
 import threading
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 from photo_frame.core.immich import ImmichClient, ImmichError
 from photo_frame.core.settings import SettingsService
 from photo_frame.core.sync import SyncService
-from photo_frame.core.time import parseIso, utcNow
+from photo_frame.core.time import parseIso
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,7 @@ class SyncScheduler:
         db = self.sync.db
         if db.getSync("sync_in_progress") == "1":
             return
-        now = utcNow()
+        now = datetime.now(timezone.utc)
         lastFull = parseIso(db.getSync("last_full_reconciliation_at"))
         lastSuccess = parseIso(db.getSync("last_success_at"))
         dueFull = lastFull is None or now - lastFull >= timedelta(hours=self.settingsService.syncReconcileHours())

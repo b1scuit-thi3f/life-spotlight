@@ -168,6 +168,8 @@ class SettingsService:
             if albumId and not re.fullmatch(r"[A-Za-z0-9-]{8,64}", albumId):
                 raise SettingsError("album id looks invalid")
             self.db.setSetting("album_id", albumId)
+        if "albumName" in payload and payload["albumName"] is not None:
+            self.db.setSetting("album_name", str(payload["albumName"]).strip())
         if payload.get("apiKey"):
             self.storeApiKey(str(payload["apiKey"]))
 

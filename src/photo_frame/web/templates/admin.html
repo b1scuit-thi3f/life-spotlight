@@ -22,26 +22,32 @@
       <h2>Status</h2>
       <dl id="status"></dl>
     </section>
-    <div class="grid two">
-      <section>
-        <h2>Immich</h2>
-        <form id="immich-form">
-          <label for="immich_url">Server URL</label>
-          <input id="immich_url" name="immich_url" type="url" placeholder="https://photos.example.com" autocomplete="off">
-          <label for="album_id">Album ID</label>
-          <input id="album_id" name="album_id" autocomplete="off" spellcheck="false">
-          <label for="api_key">API key</label>
-          <input id="api_key" name="api_key" type="password" autocomplete="new-password" placeholder="Leave blank to keep the stored key">
-          <div class="row">
-            <button type="submit">Save</button>
-            <button id="test" class="secondary" type="button">Test connection</button>
-          </div>
-        </form>
-        <div id="albums" class="row"></div>
-      </section>
-      <section>
-        <h2>Display</h2>
-        <form id="display-form">
+    <div class="tabs" role="tablist">
+      <button type="button" class="secondary" role="tab" id="tab-immich" aria-controls="panel-immich" aria-selected="true">Immich</button>
+      <button type="button" class="secondary" role="tab" id="tab-display" aria-controls="panel-display" aria-selected="false">Display</button>
+      <button type="button" class="secondary" role="tab" id="tab-sync" aria-controls="panel-sync" aria-selected="false">Sync</button>
+      <button type="button" class="secondary" role="tab" id="tab-wifi" aria-controls="panel-wifi" aria-selected="false">Wi-Fi</button>
+    </div>
+    <p id="form-note" class="note"></p>
+    <section id="panel-immich" role="tabpanel" aria-labelledby="tab-immich">
+      <h2>Immich</h2>
+      <form id="immich-form">
+        <label for="immich_url">Server URL</label>
+        <input id="immich_url" name="immich_url" type="url" placeholder="https://photos.example.com" autocomplete="off">
+        <label for="api_key">API key</label>
+        <input id="api_key" name="api_key" type="password" autocomplete="new-password" placeholder="Leave blank to keep the stored key">
+        <div class="row">
+          <button type="submit">Save and load albums</button>
+        </div>
+      </form>
+      <label for="album_id">Album</label>
+      <select id="album_id" disabled>
+        <option value="">Save the server to choose an album</option>
+      </select>
+    </section>
+    <section id="panel-display" role="tabpanel" aria-labelledby="tab-display" hidden>
+      <h2>Display</h2>
+      <form id="display-form">
           <label for="presentation_mode">Mode</label>
           <select id="presentation_mode">
             <option value="now">Now</option>
@@ -64,9 +70,8 @@
             <button type="submit">Save display</button>
           </div>
         </form>
-      </section>
-    </div>
-    <section>
+    </section>
+    <section id="panel-sync" role="tabpanel" aria-labelledby="tab-sync" hidden>
       <h2>Sync and storage</h2>
       <form id="system-form">
         <div class="grid two">
@@ -99,16 +104,13 @@
           <button type="submit">Save sync and storage</button>
         </div>
       </form>
-    </section>
-    <section>
-      <h2>Sync</h2>
+      <h2>Run a sync</h2>
       <div class="row">
         <button id="sync-now" type="button">Sync now</button>
         <button id="reconcile" class="secondary" type="button">Full reconciliation</button>
       </div>
-      <p id="form-note" class="note"></p>
     </section>
-    <section>
+    <section id="panel-wifi" role="tabpanel" aria-labelledby="tab-wifi" hidden>
       <h2>Wi-Fi</h2>
       <p class="note">NetworkManager owns the connection. This only asks the operating system to join a network.</p>
       <form id="wifi-form">

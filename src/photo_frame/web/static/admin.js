@@ -26,6 +26,21 @@ watchForm("immich-form");
 watchForm("display-form");
 watchForm("system-form");
 
+const albumSelect = document.getElementById("album_id");
+let selectedAlbumId = "";
+let albumsLoaded = false;
+
+document.querySelectorAll("[role=tab]").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll("[role=tab]").forEach((item) => {
+      item.setAttribute("aria-selected", item === tab ? "true" : "false");
+    });
+    document.querySelectorAll("[role=tabpanel]").forEach((panel) => {
+      panel.hidden = panel.id !== tab.getAttribute("aria-controls");
+    });
+  });
+});
+
 function bytes(value) {
   if (value == null) return "unknown";
   const units = ["B", "KB", "MB", "GB", "TB"];
@@ -66,7 +81,8 @@ async function refresh() {
     line("Version", data.version),
   ].join("");
   setControl("immich_url", data.immich.url || "");
-  setControl("album_id", data.immich.albumId || "");
+  if (!dirty.has("album_id")) selectedAlbumId = data.immich.albumId || "";
+  if (albumSelect.options.length > 1 && !dirty.has("album_id")) albumSelect.value = selectedAlbumId;
   setControl("presentation_mode", data.display.presentationMode);
   setControl("photo_duration_seconds", data.display.photoDurationSeconds);
   setControl("transition", data.display.transition);
@@ -80,6 +96,7 @@ async function refresh() {
   setControl("reserved_gb", ((system.reservedBytes || 0) / 1e9).toFixed(1));
   setControl("http_timeout_seconds", system.httpTimeoutSeconds);
   setControl("download_timeout_seconds", system.downloadTimeoutSeconds);
+  return data;
 }
 
 async function post(url, body) {
@@ -95,18 +112,78 @@ async function post(url, body) {
   return payload;
 }
 
+let fillingAlbums = false;
+
+function fillAlbums(albums) {
+  fillingAlbums = true;
+  const current = selectedAlbumId;
+  albumSelect.replaceChildren();
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = albums.length ? "Choose an album" : "No albums found";
+  albumSelect.appendChild(placeholder);
+  for (const album of albums) {
+    const option = document.createElement("option");
+    option.value = album.id || "";
+    option.dataset.name = album.name || "Untitled";
+    option.textContent = `${album.name || "Untitled"} (${album.count ?? "?"})`;
+    if (album.id && album.id === current) option.selected = true;
+    albumSelect.appendChild(option);
+  }
+  albumSelect.disabled = albums.length === 0;
+  fillingAlbums = false;
+}
+
+async function loadAlbums(body) {
+  formNote.textContent = "Contacting Immich…";
+  formNote.className = "note";
+  const response = await fetch("/api/admin/immich/test", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body || {}),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.ok) {
+    formNote.textContent = payload.detail || payload.message || "connection failed";
+    formNote.className = "note bad";
+    return;
+  }
+  document.getElementById("api_key").value = "";
+  clearDirty(["immich_url", "api_key"]);
+  fillAlbums(payload.albums || []);
+  albumsLoaded = true;
+  formNote.textContent = payload.albums?.length ? "Choose an album." : "Connected, but no albums were returned.";
+  formNote.className = "note ok";
+  refresh();
+}
+
 document.getElementById("immich-form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  formNote.textContent = "Saving…";
   try {
-    await post("/api/admin/immich", {
+    await loadAlbums({
       immichUrl: document.getElementById("immich_url").value,
-      albumId: document.getElementById("album_id").value,
       apiKey: document.getElementById("api_key").value || null,
     });
-    document.getElementById("api_key").value = "";
-    clearDirty(["immich_url", "album_id", "api_key"]);
-    formNote.textContent = "Immich settings saved. The key is not shown again.";
+  } catch (error) {
+    formNote.textContent = error.message;
+    formNote.className = "note bad";
+  }
+});
+
+albumSelect.addEventListener("change", async () => {
+  if (fillingAlbums) return;
+  const option = albumSelect.selectedOptions[0];
+  if (!albumSelect.value) return;
+  dirty.add("album_id");
+  formNote.textContent = "Saving album…";
+  try {
+    await post("/api/admin/immich", {
+      albumId: albumSelect.value,
+      albumName: option?.dataset.name || "",
+    });
+    selectedAlbumId = albumSelect.value;
+    clearDirty(["album_id"]);
+    formNote.textContent = "Album saved.";
     formNote.className = "note ok";
     refresh();
   } catch (error) {
@@ -170,30 +247,6 @@ document.getElementById("system-form").addEventListener("submit", async (event) 
   }
 });
 
-document.getElementById("test").addEventListener("click", async () => {
-  formNote.textContent = "Contacting Immich…";
-  const response = await fetch("/api/admin/immich/test", { method: "POST" });
-  const payload = await response.json();
-  const albums = document.getElementById("albums");
-  if (!payload.ok) {
-    formNote.textContent = payload.message || "connection failed";
-    formNote.className = "note bad";
-    albums.textContent = "";
-    return;
-  }
-  formNote.textContent = "Connected.";
-  formNote.className = "note ok";
-  albums.innerHTML = (payload.albums || []).map((album) => {
-    const name = album.name || "Untitled";
-    return `<button type="button" class="secondary pick" data-id="${album.id}">${name} (${album.count ?? "?"})</button>`;
-  }).join(" ");
-  albums.querySelectorAll(".pick").forEach((button) => {
-    button.addEventListener("click", () => {
-      document.getElementById("album_id").value = button.dataset.id;
-    });
-  });
-});
-
 async function sync(kind) {
   formNote.textContent = `Running ${kind} sync…`;
   try {
@@ -244,5 +297,9 @@ document.getElementById("wifi-form").addEventListener("submit", async (event) =>
   }
 });
 
-refresh();
+refresh().then((data) => {
+  if (data && data.immich.apiKeyConfigured && data.immich.url) {
+    loadAlbums({ immichUrl: data.immich.url });
+  }
+});
 setInterval(refresh, 15000);

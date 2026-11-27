@@ -43,7 +43,7 @@ On the admin page:
 
 1. Save the Immich URL.
 2. Paste an API key from a dedicated Immich user. Leave the field blank later; the stored key is kept in SQLite and never shown back.
-3. Test connection, pick the album, save.
+3. Choose an album from the list.
 4. Run **Sync now**. Playback starts as soon as files land in the cache.
 
 The API key needs permission to read the album and download originals on your Immich version. Read-only is enough.

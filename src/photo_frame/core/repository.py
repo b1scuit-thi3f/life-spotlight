@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from photo_frame.core.database import Database
-from photo_frame.core.time import toIso, utcNow
+from photo_frame.core.time import toIso
 from photo_frame.models.immich import RemoteAsset
 from photo_frame.models.media import MediaRecord
 
@@ -171,7 +171,7 @@ class MediaRepository:
         completed: bool,
         audioEnabled: bool,
     ) -> None:
-        now = toIso(utcNow())
+        now = toIso(datetime.now(timezone.utc))
         self.db.execute(
             """
             INSERT INTO playback_history

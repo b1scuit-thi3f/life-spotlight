@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-from photo_frame.core.time import parseIso, utcNow
+from photo_frame.core.time import parseIso
 from photo_frame.models.display import PresentationMode
 from photo_frame.models.media import MediaRecord, Selection
 
@@ -23,7 +23,7 @@ class SelectionEngine:
         excludeIds: list[int] | None = None,
         now: datetime | None = None,
     ) -> Selection | None:
-        now = now or utcNow()
+        now = now or datetime.now(timezone.utc)
         eligible = [item for item in media if item.isPresent]
         if not eligible:
             return None
@@ -64,7 +64,7 @@ class SelectionEngine:
         seen = parseIso(item.firstSeenAt)
         if seen is None:
             return False
-        now = now or utcNow()
+        now = now or datetime.now(timezone.utc)
         return now - seen <= timedelta(hours=self.newWindowHours)
 
     def newest(self, pool: list[MediaRecord]) -> MediaRecord:

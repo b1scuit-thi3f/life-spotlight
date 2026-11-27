@@ -38,6 +38,7 @@ class RemoteAlbum:
 class ImmichUpdate(BaseModel):
     immichUrl: str | None = None
     albumId: str | None = None
+    albumName: str | None = None
     apiKey: str | None = None
 
 

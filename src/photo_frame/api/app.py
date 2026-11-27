@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -25,7 +26,6 @@ from photo_frame.core.scheduler import SyncScheduler
 from photo_frame.core.selection import SelectionEngine
 from photo_frame.core.settings import SettingsService
 from photo_frame.core.sync import SyncService
-from photo_frame.core.time import utcNow
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ def createApp(runtime: RuntimeConfig | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        app.state.startedAt = utcNow()
+        app.state.startedAt = datetime.now(timezone.utc)
         app.state.scheduler.start()
         logger.info("photo frame %s listening; data dir %s", __version__, runtime.dataDir)
         yield

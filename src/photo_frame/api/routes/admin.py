@@ -7,12 +7,11 @@ from fastapi.responses import JSONResponse
 
 from photo_frame.core.immich import ImmichClient, ImmichError
 from photo_frame.core.settings import SettingsError, SettingsService
-from photo_frame.core.status import displayState, systemState
-from photo_frame.models.display import DisplayUpdate
+from photo_frame.models.display import DisplayState, DisplayUpdate
 from photo_frame.models.immich import AlbumSummary, ImmichTestResult, ImmichUpdate
 from photo_frame.models.network import WifiConnectResult, WifiNetworks, WifiUpdate
 from photo_frame.models.sync import SyncTriggerResult
-from photo_frame.models.system import SystemUpdate
+from photo_frame.models.system import SystemState, SystemUpdate
 
 router = APIRouter()
 
@@ -25,7 +24,17 @@ def updateDisplay(request: Request, payload: DisplayUpdate):
     except (SettingsError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     request.app.state.selector.newWindowHours = settings.newWindowHours()
-    return {"ok": True, "display": displayState(settings)}
+    return {
+        "ok": True,
+        "display": DisplayState(
+            presentationMode=settings.presentationMode(),
+            photoDurationSeconds=settings.photoDurationSeconds(),
+            showOverlay=settings.showOverlay(),
+            videosEnabled=settings.videosEnabled(),
+            transition=settings.transition(),
+            newWindowHours=settings.newWindowHours(),
+        ),
+    }
 
 
 @router.post("/api/admin/system")
@@ -38,7 +47,17 @@ def updateSystem(request: Request, payload: SystemUpdate):
     cache = request.app.state.cache
     cache.ceilingBytes = settings.cacheCeilingBytes()
     cache.reservedBytes = settings.reservedBytes()
-    return {"ok": True, "system": systemState(settings)}
+    return {
+        "ok": True,
+        "system": SystemState(
+            cacheCeilingBytes=settings.cacheCeilingBytes(),
+            reservedBytes=settings.reservedBytes(),
+            syncIncrementalMinutes=settings.syncIncrementalMinutes(),
+            syncReconcileHours=settings.syncReconcileHours(),
+            httpTimeoutSeconds=settings.httpTimeoutSeconds(),
+            downloadTimeoutSeconds=settings.downloadTimeoutSeconds(),
+        ),
+    }
 
 
 @router.post("/api/admin/immich")
@@ -57,9 +76,10 @@ def updateImmich(request: Request, payload: ImmichUpdate):
 
 
 @router.post("/api/admin/immich/test")
-def testImmich(request: Request):
+def testImmich(request: Request, payload: ImmichUpdate):
     settings: SettingsService = request.app.state.settingsService
     try:
+        settings.updateImmich(payload.model_dump(exclude_none=True))
         client = ImmichClient(
             settings.immichUrl(),
             settings.apiKey(),
@@ -75,6 +95,8 @@ def testImmich(request: Request):
             )
             for item in client.listAlbums()
         ]
+    except SettingsError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except ImmichError as exc:
         return JSONResponse(
             status_code=502,

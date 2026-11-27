@@ -40,7 +40,7 @@ function bindControls() {
     gesture = null;
     const moved = Math.hypot(event.clientX - start.x, event.clientY - start.y);
     if (moved > 28) return;
-    handleTap(start.target);
+    handleTap(start.target, start.x);
   });
   stage.addEventListener("pointercancel", () => {
     gesture = null;
@@ -64,7 +64,7 @@ function bindControls() {
   });
 }
 
-function handleTap(target) {
+function handleTap(target, x) {
   const link = target.closest("a[href]");
   const settingsLink = link && link.classList.contains("settings");
   if (link && (!settingsLink || controls.classList.contains("visible"))) {
@@ -72,17 +72,24 @@ function handleTap(target) {
     return;
   }
   const button = target.closest("button");
-  if (button && (controls.classList.contains("visible") || transport.classList.contains("visible"))) {
+  if (button && button.id === "next") {
+    advance(true);
+    return;
+  }
+  if (button && transport.contains(button)) {
     revealControls();
-    if (button.id === "next") advance(true);
-    else if (button.id === "audio") toggleAudio();
+    if (button.id === "audio") toggleAudio();
     else if (button.id === "play") togglePlay();
     else if (button.id === "restart") restartVideo();
     return;
   }
-  const menusOpen = controls.classList.contains("visible");
+  const bounds = stage.getBoundingClientRect();
+  const onRight = x > bounds.left + bounds.width * 0.75;
+  if (onRight) {
+    advance(true);
+    return;
+  }
   revealControls();
-  if (menusOpen) advance(true);
 }
 
 function revealControls() {
@@ -203,6 +210,7 @@ async function whenReady(element) {
 }
 
 async function showMedia(media) {
+  audioEnabled = false;
   const generation = ++showGeneration;
   const slide = document.createElement("div");
   slide.className = "slide";
@@ -213,7 +221,7 @@ async function showMedia(media) {
     element.autoplay = true;
     element.loop = false;
     element.preload = "auto";
-    element.muted = !audioEnabled;
+    element.muted = true;
     element.playsInline = true;
     element.controls = false;
     element.addEventListener("play", updateTransport);

@@ -7,13 +7,14 @@ A failed or partial read leaves the last known good cache untouched.
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 
 from photo_frame.core.cache import CacheError, MediaCache
 from photo_frame.core.database import Database
 from photo_frame.core.immich import ImmichClient, ImmichError
 from photo_frame.core.repository import MediaRepository
-from photo_frame.core.time import parseIso, toIso, utcNow
+from photo_frame.core.time import parseIso, toIso
 from photo_frame.models.immich import RemoteAlbum, RemoteAsset
 from photo_frame.models.sync import SyncResult
 
@@ -41,7 +42,7 @@ class SyncService:
         allowDeletes: bool,
         cheapSkip: bool,
     ) -> SyncResult:
-        started = utcNow()
+        started = datetime.now(timezone.utc)
         self.db.setSync("last_attempted_at", toIso(started))
         self.db.setSync("last_attempted_kind", kind)
         self.db.setSync("sync_in_progress", "1")
@@ -99,7 +100,7 @@ class SyncService:
 
     def applyRemote(self, client: ImmichClient, album: RemoteAlbum) -> tuple[int, int, int, int]:
         added = updated = unchanged = skipped = 0
-        now = toIso(utcNow())
+        now = toIso(datetime.now(timezone.utc))
         for asset in album.assets:
             existing = self.repository.getByImmichId(asset.immichId)
             if existing is None:
@@ -158,7 +159,7 @@ class SyncService:
         return removed
 
     def finishSuccess(self, result: SyncResult, album: RemoteAlbum, *, marker: str) -> None:
-        finished = utcNow()
+        finished = datetime.now(timezone.utc)
         result.finishedAt = toIso(finished)
         self.db.setSync("last_success_at", result.finishedAt)
         self.db.setSync("last_remote_count", str(result.remoteCount or album.assetCount))
@@ -172,7 +173,7 @@ class SyncService:
 
     def finishFailure(self, result: SyncResult, errorClass: str, message: str) -> SyncResult:
         result.success = False
-        result.finishedAt = toIso(utcNow())
+        result.finishedAt = toIso(datetime.now(timezone.utc))
         result.errorClass = errorClass
         result.message = message
         self.db.setSync("last_error_class", errorClass)

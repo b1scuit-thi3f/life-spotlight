@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-from photo_frame.core.time import toIso, utcNow
+from photo_frame.core.time import toIso
 
 schema = """
 CREATE TABLE IF NOT EXISTS settings (
@@ -105,7 +106,7 @@ class Database:
         if 1 not in applied:
             self.connection.execute(
                 "INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",
-                (1, toIso(utcNow())),
+                (1, toIso(datetime.now(timezone.utc))),
             )
 
     def execute(self, sql: str, params: Iterable[Any] = ()) -> sqlite3.Cursor:
@@ -118,7 +119,7 @@ class Database:
         return str(row["value"])
 
     def setSetting(self, key: str, value: str) -> None:
-        now = toIso(utcNow())
+        now = toIso(datetime.now(timezone.utc))
         self.connection.execute(
             """
             INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)
@@ -138,7 +139,7 @@ class Database:
         return str(row["value"])
 
     def setSync(self, key: str, value: str) -> None:
-        now = toIso(utcNow())
+        now = toIso(datetime.now(timezone.utc))
         self.connection.execute(
             """
             INSERT INTO sync_state (key, value, updated_at) VALUES (?, ?, ?)
