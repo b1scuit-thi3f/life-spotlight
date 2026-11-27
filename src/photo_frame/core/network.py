@@ -10,18 +10,8 @@ from __future__ import annotations
 import shutil
 import socket
 import subprocess
-from dataclasses import dataclass
 
-
-@dataclass(slots=True)
-class NetworkStatus:
-    connected: bool
-    interface: str | None
-    ssid: str | None
-    addresses: list[str]
-    hostname: str
-    nmcli_available: bool
-    detail: str
+from photo_frame.models.network import NetworkStatus
 
 
 class NetworkAdapter:
@@ -29,7 +19,17 @@ class NetworkAdapter:
         self.hostname = hostname
 
     def status(self) -> NetworkStatus:
-        addresses = _local_addresses()
+        addresses: list[str] = []
+        try:
+            host = socket.gethostname()
+            for item in socket.getaddrinfo(host, None):
+                addr = item[4][0]
+                if addr not in addresses and ":" not in addr:
+                    addresses.append(addr)
+        except OSError:
+            pass
+        if not addresses:
+            addresses.append("127.0.0.1")
         connected = any(not addr.startswith("127.") for addr in addresses)
         ssid = None
         interface = None
@@ -60,11 +60,11 @@ class NetworkAdapter:
             ssid=ssid,
             addresses=addresses,
             hostname=self.hostname,
-            nmcli_available=bool(nmcli),
+            nmcliAvailable=bool(nmcli),
             detail=detail[:500],
         )
 
-    def wifi_networks(self) -> list[str]:
+    def wifiNetworks(self) -> list[str]:
         nmcli = shutil.which("nmcli")
         if not nmcli:
             return []
@@ -85,7 +85,7 @@ class NetworkAdapter:
                 seen.append(ssid)
         return seen[:30]
 
-    def connect_wifi(self, ssid: str, password: str) -> tuple[bool, str]:
+    def connectWifi(self, ssid: str, password: str) -> tuple[bool, str]:
         """Ask NetworkManager to store and activate a connection.
 
         The password is passed as a process argument and is not logged.
@@ -106,21 +106,5 @@ class NetworkAdapter:
         except (OSError, subprocess.TimeoutExpired) as exc:
             return False, f"NetworkManager request failed: {exc.__class__.__name__}"
         message = (completed.stdout or completed.stderr or "").strip()
-        # Never echo the password back even if nmcli repeats the command line.
         message = message.replace(password, "[redacted]") if password else message
         return completed.returncode == 0, message[:400] or "no output from NetworkManager"
-
-
-def _local_addresses() -> list[str]:
-    addresses: list[str] = []
-    try:
-        host = socket.gethostname()
-        for item in socket.getaddrinfo(host, None):
-            addr = item[4][0]
-            if addr not in addresses and ":" not in addr:
-                addresses.append(addr)
-    except OSError:
-        pass
-    if not addresses:
-        addresses.append("127.0.0.1")
-    return addresses

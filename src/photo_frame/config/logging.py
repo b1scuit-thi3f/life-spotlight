@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import re
 
-_SECRET_PATTERNS = (
+secretPatterns = (
     re.compile(r"(x-api-key['\"]?\s*[:=]\s*)\S+", re.IGNORECASE),
     re.compile(r"(api[_-]?key['\"]?\s*[:=]\s*)\S+", re.IGNORECASE),
     re.compile(r"(password['\"]?\s*[:=]\s*)\S+", re.IGNORECASE),
@@ -17,7 +17,7 @@ class RedactingFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         message = record.getMessage()
         redacted = message
-        for pattern in _SECRET_PATTERNS:
+        for pattern in secretPatterns:
             redacted = pattern.sub(r"\1[redacted]", redacted)
         if redacted != message:
             record.msg = redacted
@@ -25,7 +25,7 @@ class RedactingFilter(logging.Filter):
         return True
 
 
-def configure_logging(level: str = "INFO") -> None:
+def configureLogging(level: str = "INFO") -> None:
     root = logging.getLogger()
     if not root.handlers:
         logging.basicConfig(

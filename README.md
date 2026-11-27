@@ -2,7 +2,7 @@
 
 A one-off appliance that mirrors a single Immich album and presents it as a photo frame. Playback always uses the local cache. Immich remains the source of truth.
 
-This is the v1 implementation of the architecture blueprint: Python, FastAPI, SQLite, a browser presentation view, and a browser admin UI. Hardware-specific pieces (kiosk session, NetworkManager, mDNS) are included as deployment scripts and are exercised on the Pi, not in local tests.
+This is the v1 implementation of the architecture blueprint: Python, FastAPI, SQLite, a browser presentation view, and a browser admin UI. Hardware-specific pieces (kiosk session, NetworkManager, mDNS) are included as deployment scripts and are exercised on the Pi.
 
 ## What works locally
 
@@ -39,12 +39,6 @@ photo-frame --host 0.0.0.0 --port 8080 --data-dir ./data --hostname frame --log-
 
 Open `http://127.0.0.1:8080/` for the frame and `http://127.0.0.1:8080/admin` to configure Immich.
 
-To preview the slideshow before Immich is reachable:
-
-```bash
-.venv/bin/python -m photo_frame.demo
-```
-
 On the admin page:
 
 1. Save the Immich URL.
@@ -53,12 +47,6 @@ On the admin page:
 4. Run **Sync now**. Playback starts as soon as files land in the cache.
 
 The API key needs permission to read the album and download originals on your Immich version. Read-only is enough.
-
-## Tests
-
-```bash
-.venv/bin/pytest
-```
 
 ## Raspberry Pi
 
@@ -75,7 +63,6 @@ src/photo_frame/services/       cache, Immich, selection, sync, network
 src/photo_frame/helpers/        models, database, time
 src/photo_frame/web/            presentation and admin UI
 deploy/                         systemd unit, kiosk script, Pi installer
-tests/                          selection, sync, cache, settings, HTTP smoke
 ```
 
 ## Immich endpoints used

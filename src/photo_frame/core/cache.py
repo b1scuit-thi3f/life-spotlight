@@ -7,7 +7,7 @@ import os
 import shutil
 from pathlib import Path
 
-from photo_frame.helpers.models import RemoteAsset
+from photo_frame.models.immich import RemoteAsset
 
 
 class CacheError(Exception):
@@ -15,34 +15,37 @@ class CacheError(Exception):
 
 
 class MediaCache:
-    def __init__(self, cache_dir: Path, tmp_dir: Path, ceiling_bytes: int, reserved_bytes: int) -> None:
-        self.cache_dir = cache_dir
-        self.tmp_dir = tmp_dir
-        self.ceiling_bytes = ceiling_bytes
-        self.reserved_bytes = reserved_bytes
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self.tmp_dir.mkdir(parents=True, exist_ok=True)
+    def __init__(self, cacheDir: Path, tmpDir: Path, ceilingBytes: int, reservedBytes: int) -> None:
+        self.cacheDir = cacheDir
+        self.tmpDir = tmpDir
+        self.ceilingBytes = ceilingBytes
+        self.reservedBytes = reservedBytes
+        self.cacheDir.mkdir(parents=True, exist_ok=True)
+        self.tmpDir.mkdir(parents=True, exist_ok=True)
 
-    def path_for(self, asset: RemoteAsset) -> Path:
+    def pathFor(self, asset: RemoteAsset) -> Path:
         """Build a cache path from the remote id, never from a remote filename."""
-        safe_id = "".join(ch for ch in asset.immich_id if ch.isalnum() or ch in "-_")
-        if not safe_id:
+        safeId = "".join(ch for ch in asset.immichId if ch.isalnum() or ch in "-_")
+        if not safeId:
             raise CacheError("asset id is empty")
-        extension = _extension(asset)
-        return self.cache_dir / f"{safe_id}{extension}"
+        return self.cacheDir / f"{safeId}{extensionFor(asset)}"
 
-    def temporary_path(self, asset: RemoteAsset) -> Path:
-        safe_id = "".join(ch for ch in asset.immich_id if ch.isalnum() or ch in "-_")
-        return self.tmp_dir / f"{safe_id}.partial"
+    def temporaryPath(self, asset: RemoteAsset) -> Path:
+        safeId = "".join(ch for ch in asset.immichId if ch.isalnum() or ch in "-_")
+        return self.tmpDir / f"{safeId}.partial"
 
-    def promote(self, temporary: Path, destination: Path, *, min_bytes: int = 32) -> tuple[int, str]:
+    def promote(self, temporary: Path, destination: Path, *, minBytes: int = 32) -> tuple[int, str]:
         if not temporary.is_file():
             raise CacheError("download did not produce a file")
         size = temporary.stat().st_size
-        if size < min_bytes:
+        if size < minBytes:
             temporary.unlink(missing_ok=True)
             raise CacheError(f"downloaded file is too small ({size} bytes)")
-        digest = _sha256(temporary)
+        digest = hashlib.sha256()
+        with temporary.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        digest = digest.hexdigest()
         destination.parent.mkdir(parents=True, exist_ok=True)
         staging = destination.with_suffix(destination.suffix + ".promoting")
         shutil.move(str(temporary), staging)
@@ -52,42 +55,42 @@ class MediaCache:
     def delete(self, path: Path) -> None:
         try:
             resolved = path.resolve()
-            cache_root = self.cache_dir.resolve()
+            cacheRoot = self.cacheDir.resolve()
         except OSError as exc:
             raise CacheError("could not resolve cache path") from exc
-        if cache_root not in resolved.parents and resolved != cache_root:
+        if cacheRoot not in resolved.parents and resolved != cacheRoot:
             raise CacheError("refusing to delete a path outside the cache")
         path.unlink(missing_ok=True)
 
-    def usage_bytes(self) -> int:
+    def usageBytes(self) -> int:
         total = 0
-        if not self.cache_dir.exists():
+        if not self.cacheDir.exists():
             return 0
-        for item in self.cache_dir.iterdir():
+        for item in self.cacheDir.iterdir():
             if item.is_file():
                 total += item.stat().st_size
         return total
 
-    def filesystem_free_bytes(self) -> int | None:
+    def filesystemFreeBytes(self) -> int | None:
         try:
-            usage = shutil.disk_usage(self.cache_dir)
+            usage = shutil.disk_usage(self.cacheDir)
         except OSError:
             return None
         return int(usage.free)
 
-    def has_room(self, incoming_bytes: int | None) -> bool:
-        used = self.usage_bytes()
-        incoming = incoming_bytes or 0
-        if used + incoming > self.ceiling_bytes:
+    def hasRoom(self, incomingBytes: int | None) -> bool:
+        used = self.usageBytes()
+        incoming = incomingBytes or 0
+        if used + incoming > self.ceilingBytes:
             return False
-        free = self.filesystem_free_bytes()
+        free = self.filesystemFreeBytes()
         if free is None:
             return True
-        return free - incoming > self.reserved_bytes
+        return free - incoming > self.reservedBytes
 
 
-def _extension(asset: RemoteAsset) -> str:
-    mime = (asset.mime_type or "").lower()
+def extensionFor(asset: RemoteAsset) -> str:
+    mime = (asset.mimeType or "").lower()
     mapping = {
         "image/jpeg": ".jpg",
         "image/jpg": ".jpg",
@@ -107,12 +110,4 @@ def _extension(asset: RemoteAsset) -> str:
     suffix = Path(name).suffix.lower()
     if suffix and len(suffix) <= 8 and suffix.startswith(".") and suffix[1:].isalnum():
         return suffix
-    return ".mp4" if asset.media_type == "video" else ".jpg"
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+    return ".mp4" if asset.mediaType == "video" else ".jpg"

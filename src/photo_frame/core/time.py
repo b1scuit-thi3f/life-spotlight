@@ -2,20 +2,20 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 
-def utc_now() -> datetime:
+def utcNow() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def to_iso(value: datetime) -> str:
+def toIso(value: datetime) -> str:
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
     return value.astimezone(timezone.utc).isoformat(timespec="seconds")
 
 
-def parse_iso(value: str | None) -> datetime | None:
+def parseIso(value: str | None) -> datetime | None:
     if not value:
         return None
     text = value.strip()
@@ -30,14 +30,11 @@ def parse_iso(value: str | None) -> datetime | None:
     return parsed.astimezone(timezone.utc)
 
 
-def age_label(moment: datetime | None, now: datetime | None = None) -> str:
+def ageLabel(moment: datetime | None, now: datetime | None = None) -> str:
     if moment is None:
         return ""
-    now = now or utc_now()
-    delta = now - moment
-    seconds = int(delta.total_seconds())
-    if seconds < 0:
-        return "just now"
+    now = now or utcNow()
+    seconds = int((now - moment).total_seconds())
     if seconds < 60:
         return "just now"
     minutes = seconds // 60
@@ -54,10 +51,3 @@ def age_label(moment: datetime | None, now: datetime | None = None) -> str:
         return f"{months} month{'s' if months != 1 else ''} ago"
     years = days // 365
     return f"{years} year{'s' if years != 1 else ''} ago"
-
-
-def within_hours(moment: datetime | None, hours: float, now: datetime | None = None) -> bool:
-    if moment is None:
-        return False
-    now = now or utc_now()
-    return now - moment <= timedelta(hours=hours)

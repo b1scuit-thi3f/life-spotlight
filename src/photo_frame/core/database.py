@@ -1,4 +1,4 @@
-"""SQLite access. The schema in the architecture document is normative."""
+"""SQLite access. Column names stay as stored so an existing cache keeps working."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Iterable
 
-from photo_frame.helpers.timeutil import to_iso, utc_now
+from photo_frame.core.time import toIso, utcNow
 
-SCHEMA = """
+schema = """
 CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
@@ -65,29 +65,8 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 );
 """
 
-# Application settings. Process bind/log options are CLI-only and are not stored here.
-# The API key is stored but must never be returned to the browser.
-SETTING_KEYS = (
-    "immich_url",
-    "album_id",
-    "album_name",
-    "api_key",
-    "presentation_mode",
-    "photo_duration_seconds",
-    "new_window_hours",
-    "show_overlay",
-    "videos_enabled",
-    "transition",
-    "cache_ceiling_bytes",
-    "reserved_bytes",
-    "sync_incremental_minutes",
-    "sync_reconcile_hours",
-    "http_timeout_seconds",
-    "download_timeout_seconds",
-)
-
-# Written once when missing. Existing rows are left alone so the admin UI wins.
-SETTING_DEFAULTS: dict[str, str] = {
+# Stored keys. These strings are the SQLite contract, not Python names.
+settingDefaults: dict[str, str] = {
     "immich_url": "",
     "album_id": "",
     "album_name": "",
@@ -106,60 +85,41 @@ SETTING_DEFAULTS: dict[str, str] = {
     "download_timeout_seconds": "300",
 }
 
-PUBLIC_SETTING_KEYS = tuple(key for key in SETTING_KEYS if key != "api_key")
-
-SYNC_KEYS = (
-    "last_attempted_at",
-    "last_attempted_kind",
-    "last_success_at",
-    "last_full_reconciliation_at",
-    "last_error_class",
-    "last_error_message",
-    "last_remote_count",
-    "last_result_message",
-    "remote_change_marker",
-    "currently_displayed_id",
-    "sync_in_progress",
-)
-
 
 class Database:
     def __init__(self, path: Path) -> None:
         self.path = path
         path.parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(path, check_same_thread=False, isolation_level=None)
-        self._conn.row_factory = sqlite3.Row
-        self._conn.execute("PRAGMA foreign_keys = ON")
-        self._conn.execute("PRAGMA journal_mode = WAL")
+        self.connection = sqlite3.connect(path, check_same_thread=False, isolation_level=None)
+        self.connection.row_factory = sqlite3.Row
+        self.connection.execute("PRAGMA foreign_keys = ON")
+        self.connection.execute("PRAGMA journal_mode = WAL")
         self.migrate()
 
     def close(self) -> None:
-        self._conn.close()
+        self.connection.close()
 
     def migrate(self) -> None:
-        self._conn.executescript(SCHEMA)
-        applied = {
-            row["version"]
-            for row in self._conn.execute("SELECT version FROM schema_migrations")
-        }
+        self.connection.executescript(schema)
+        applied = {row["version"] for row in self.connection.execute("SELECT version FROM schema_migrations")}
         if 1 not in applied:
-            self._conn.execute(
+            self.connection.execute(
                 "INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",
-                (1, to_iso(utc_now())),
+                (1, toIso(utcNow())),
             )
 
     def execute(self, sql: str, params: Iterable[Any] = ()) -> sqlite3.Cursor:
-        return self._conn.execute(sql, tuple(params))
+        return self.connection.execute(sql, tuple(params))
 
-    def get_setting(self, key: str, default: str | None = None) -> str | None:
-        row = self._conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+    def getSetting(self, key: str, default: str | None = None) -> str | None:
+        row = self.connection.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
         if row is None:
             return default
         return str(row["value"])
 
-    def set_setting(self, key: str, value: str) -> None:
-        now = to_iso(utc_now())
-        self._conn.execute(
+    def setSetting(self, key: str, value: str) -> None:
+        now = toIso(utcNow())
+        self.connection.execute(
             """
             INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)
             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
@@ -167,19 +127,19 @@ class Database:
             (key, value, now),
         )
 
-    def all_settings(self) -> dict[str, str]:
-        rows = self._conn.execute("SELECT key, value FROM settings").fetchall()
+    def allSettings(self) -> dict[str, str]:
+        rows = self.connection.execute("SELECT key, value FROM settings").fetchall()
         return {str(row["key"]): str(row["value"]) for row in rows}
 
-    def get_sync(self, key: str, default: str | None = None) -> str | None:
-        row = self._conn.execute("SELECT value FROM sync_state WHERE key = ?", (key,)).fetchone()
+    def getSync(self, key: str, default: str | None = None) -> str | None:
+        row = self.connection.execute("SELECT value FROM sync_state WHERE key = ?", (key,)).fetchone()
         if row is None:
             return default
         return str(row["value"])
 
-    def set_sync(self, key: str, value: str) -> None:
-        now = to_iso(utc_now())
-        self._conn.execute(
+    def setSync(self, key: str, value: str) -> None:
+        now = toIso(utcNow())
+        self.connection.execute(
             """
             INSERT INTO sync_state (key, value, updated_at) VALUES (?, ?, ?)
             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
@@ -187,6 +147,6 @@ class Database:
             (key, value, now),
         )
 
-    def all_sync(self) -> dict[str, str]:
-        rows = self._conn.execute("SELECT key, value FROM sync_state").fetchall()
+    def allSync(self) -> dict[str, str]:
+        rows = self.connection.execute("SELECT key, value FROM sync_state").fetchall()
         return {str(row["key"]): str(row["value"]) for row in rows}
